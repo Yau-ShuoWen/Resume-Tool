@@ -87,8 +87,8 @@ globalThis.resumeToolFill = async function (profile, fields, recordTypes) {
     const choice = norm(candidate);
     const target = norm(wanted);
     if (samePlace(choice, target)) return 100;
-    if (target === '本科' && /^(大学|普通)?本科(及以上|学历)?$/.test(choice)) return 85;
-    if (target === '全日制' && /^(普通|统招)?全日制$/.test(choice)) return 85;
+    if (target === '本科' && /^(大学|普通|普通高等教育|全日制普通)?本科(及以上|学历|毕业)?$/.test(choice)) return 85;
+    if (target === '全日制' && /^(全国)?(普通高等院校|普通高等教育|普通|统招)?全日制$/.test(choice)) return 85;
     if (choice.startsWith('非') && !target.startsWith('非')) return 0;
     return target.length >= 2 && choice.includes(target) && choice.length - target.length <= 4 ? 50 : 0;
   };
@@ -105,7 +105,7 @@ globalThis.resumeToolFill = async function (profile, fields, recordTypes) {
       .find(entry => entry.score > 0)?.item;
   };
   const waitForOption = async wanted => {
-    for (let attempt = 0; attempt < 12; attempt++) {
+    for (let attempt = 0; attempt < 6; attempt++) {
       const option = findOption(wanted);
       if (option) return option;
       await new Promise(resolve => setTimeout(resolve, 75));
@@ -130,25 +130,23 @@ globalThis.resumeToolFill = async function (profile, fields, recordTypes) {
   const chooseCustom = async (el, value) => {
     if (choiceDisplay(el).some(part => optionScore(part, value) >= 100)) return true;
     const trigger = choiceTrigger(el);
-    const targets = [...new Set([trigger, el, trigger.parentElement, trigger.parentElement?.parentElement].filter(Boolean))];
-    for (const target of targets) {
-      target.click();
-      let option = await waitForOption(value);
-      if (!option && el.tagName === 'INPUT' && !el.readOnly) {
-        const popupSearch = [...document.querySelectorAll('input[placeholder*="搜索"],input[placeholder*="Search"],input[placeholder*="search"]')]
-          .find(input => isVisible(input) && input.closest('[class*="selectList"],[class*="select-list"],[role="listbox"],[class*="dropdown"],[class*="popup"]'));
-        const searchInput = popupSearch || el;
+    trigger.click();
+    let option = await waitForOption(value);
+    if (!option) {
+      const popupSearch = [...document.querySelectorAll('input[placeholder*="搜索"],input[placeholder*="Search"],input[placeholder*="search"]')]
+        .find(input => isVisible(input) && input.closest('[class*="selectList"],[class*="select-list"],[role="listbox"],[class*="dropdown"],[class*="popup"]'));
+      const searchInput = popupSearch || (el.tagName === 'INPUT' && !el.readOnly ? el : null);
+      if (searchInput) {
         const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set;
         if (setter) setter.call(searchInput, String(value)); else searchInput.value = String(value);
         searchInput.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertText' }));
         option = await waitForOption(value);
       }
-      if (!option) continue;
-      option.click();
-      await new Promise(resolve => setTimeout(resolve, 120));
-      if (choiceDisplay(el).some(part => optionScore(part, value) > 0)) return true;
     }
-    return false;
+    if (!option) return false;
+    option.click();
+    await new Promise(resolve => setTimeout(resolve, 120));
+    return choiceDisplay(el).some(part => optionScore(part, value) > 0);
   };
   const write = async (el, value) => {
     if (value == null || value === '') return 'missing';
@@ -207,7 +205,7 @@ globalThis.resumeToolFill = async function (profile, fields, recordTypes) {
       return 'filled';
     }
     if (el.isContentEditable) { el.textContent = String(value); notify(el); return 'filled'; }
-    if (choiceWidget(el) || (el.tagName === 'INPUT' && genericPlaceholder.test(norm(el.placeholder)) && !/日期|时间/.test(rowLabel(el)))) {
+    if (choiceWidget(el)) {
       if (el.type === 'date' || el.type === 'month' || /日期|时间/.test(rowLabel(el))) {
         if (el.tagName !== 'INPUT') return 'unsupported';
         const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set;
@@ -231,11 +229,13 @@ globalThis.resumeToolFill = async function (profile, fields, recordTypes) {
     educationEntries: ['教育经历', '教育背景'],
     workEntries: ['工作经历', '实习经历', '工作经验', '工作/实习经历', '任职经历'],
     projectEntries: ['项目经历', '项目经验'],
-    awardEntries: ['获奖经历', '荣誉奖项', '证书奖项', '获奖证书'],
+    awardEntries: ['获奖经历', '荣誉奖项', '证书奖项', '获奖证书', '获奖情况', '证书信息'],
     campusEntries: ['在校职务', '校园经历', '学生工作']
   };
   const sectionTitles = Object.values(titles).flat();
-  const isHeadingText = value => sectionTitles.some(title => norm(value).startsWith(norm(title)) && norm(value).length <= norm(title).length + 6);
+  const otherSectionTitles = ['语言能力', '语言技能', '语言经历', '证书', '证书经历', '论文', '发表论文'];
+  const isHeadingText = value => sectionTitles.some(title => norm(value).startsWith(norm(title)) && norm(value).length <= norm(title).length + 6)
+    || otherSectionTitles.some(title => norm(value) === norm(title));
   const candidateHeadings = [...document.querySelectorAll('h1,h2,h3,h4,h5,legend,div,span,p')]
     .filter(el => isVisible(el) && isHeadingText(text(el)))
     .filter(el => ![...el.children].some(child => isHeadingText(text(child))));
