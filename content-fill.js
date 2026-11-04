@@ -76,6 +76,18 @@ globalThis.resumeToolFill = async function (profile, fields, recordTypes) {
   };
   const write = async (el, value) => {
     if (value == null || value === '') return 'missing';
+    if (norm(value) === '至今') {
+      let row = el.parentElement;
+      for (let depth = 0; row && depth < 4; depth++, row = row.parentElement) {
+        const current = [...row.querySelectorAll('input[type="checkbox"]')].find(box =>
+          norm([box.value, ...ownLabels(box), text(box.parentElement)].join(' ')).includes('至今'));
+        if (current) {
+          if (!current.checked) current.click();
+          notify(current);
+          return 'filled';
+        }
+      }
+    }
     if (el.type === 'file') {
       if (!value?.data) return 'missing';
       const encoded = value.data.slice(value.data.indexOf(',') + 1);

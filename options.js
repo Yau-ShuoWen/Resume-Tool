@@ -38,12 +38,6 @@ for (const group of groups) {
       if (longFields.has(key)) input.rows = 5;
       wrapper.append(input);
     }
-    for (const type of recordTypes) {
-      const list = form.querySelector(`[data-record-list="${type.key}"]`);
-      next[type.key] = [...list.children].map(card => Object.fromEntries(
-        [...card.querySelectorAll('[data-record-field]')].map(input => [input.dataset.recordField, input.value.trim()])
-      )).filter(entry => Object.values(entry).some(Boolean));
-    }
     grid.append(wrapper);
   }
   section.append(grid);
@@ -114,6 +108,12 @@ document.querySelector('#save').addEventListener('click', async () => {
       if (input.type === 'file') {
         if (input.files[0]) next[key] = await readFile(input.files[0]);
       } else next[key] = input.value.trim();
+    }
+    for (const type of recordTypes) {
+      const list = form.querySelector(`[data-record-list="${type.key}"]`);
+      next[type.key] = [...list.children].map(card => Object.fromEntries(
+        [...card.querySelectorAll('[data-record-field]')].map(input => [input.dataset.recordField, input.value.trim()])
+      )).filter(entry => Object.values(entry).some(Boolean));
     }
     await saveProfile(next);
     profile = next;
