@@ -1,8 +1,26 @@
-// Initial values transcribed from the user's resume. Later edits live in chrome.storage.local.
+// Initial values from the user's resume and later field corrections. Edits live in chrome.storage.local.
 export const defaultProfile = {
   name: '姚子聪',
   phone: '19033658713',
   email: '2653009930@qq.com',
+  birthDate: '2005-06-13',
+  ethnicity: '汉',
+  politicalStatus: '共青团员',
+  identityNumber: '360103200506132717',
+  identityType: '身份证',
+  heightCm: '172',
+  weightKg: '60',
+  hometown: '江西省南昌市西湖区',
+  hometownProvince: '江西省',
+  hometownCity: '南昌市',
+  hometownDistrict: '西湖区',
+  residence: '浙江省杭州市钱塘区',
+  residenceProvince: '浙江省',
+  residenceCity: '杭州市',
+  residenceDistrict: '钱塘区',
+  city: '杭州市',
+  salary: '7000',
+  arrivalDate: '2026-07',
   github: 'https://github.com/Yau-ShuoWen',
   school: '成都东软学院',
   degree: '本科',
@@ -20,7 +38,7 @@ export const defaultProfile = {
 };
 
 export const defaultRecords = {
-  educationEntries: [{ school: '成都东软学院', degree: '本科', major: '软件工程', startDate: '2023-09', endDate: '2027-07', description: '专业课程：数据结构、Java 程序设计、数据库原理与应用、Web 框架开发、Android 应用开发、软件测试。' }],
+  educationEntries: [{ school: '成都东软学院', degree: '本科', major: '软件工程', studyMode: '全日制', startDate: '2023-09', endDate: '2027-07', languageType: '英语', languageLevel: '熟练', description: '专业课程：数据结构、Java 程序设计、数据库原理与应用、Web 框架开发、Android 应用开发、软件测试。' }],
   workEntries: [
     { company: '杭州九面明途科技有限公司', position: '见习程序员', startDate: '2026-07', endDate: '至今', description: '参与“面试精灵”面试助手软件从零到一的开发，产品已上线 Android 应用商店、App Store 及官网（interviewelf.com）。\n前端 / 跨端：使用 Uni-App 重写原 Vue 移动端前端；搭建命令行本地打包流程；统一移动端与网页端导航逻辑，排查动画和 SVG 图标等兼容性问题。\n后端 / 代码治理：统一早期 API 封装及返回值、状态码；参与排查开发与测试环境数据不一致；重构应用内付费结构；抽象不同题型的共性结构。' },
     { company: '昆山新莱洁净应用材料股份有限公司', position: '软件开发实习岗', startDate: '2025-06', endDate: '2025-09', description: '参与基础培训，在积分秒杀系统项目早期协助后端搭建。编写 MySQL 增删改查语句，接入 Redis 缓存，参与接入 RocketMQ 消息队列。' }

@@ -16,7 +16,7 @@ globalThis.resumeToolFill = async function (profile, fields, recordTypes) {
     if (el.id) parts.push(...labelCache.filter(item => item.htmlFor === el.id).map(text));
     const placeholder = el.getAttribute('placeholder');
     if (placeholder && !genericPlaceholder.test(norm(placeholder))) parts.push(placeholder);
-    return parts.filter(Boolean);
+    return parts.filter(part => part && !genericPlaceholder.test(norm(part)));
   };
   const rowLabel = el => {
     let node = el.parentElement;
@@ -74,8 +74,31 @@ globalThis.resumeToolFill = async function (profile, fields, recordTypes) {
     el.dispatchEvent(new Event('change', { bubbles: true }));
     el.dispatchEvent(new Event('blur', { bubbles: true }));
   };
+  const samePlace = (a, b) => {
+    const left = norm(a).replace(/[省市区县族]/g, '');
+    const right = norm(b).replace(/[省市区县族]/g, '');
+    return left === right || (right === '共青团员' && left === '团员') || (right === '全日制' && left === '普通全日制');
+  };
+  const findOption = wanted => {
+    const candidates = [...document.querySelectorAll('[role="option"],li,[class*="option"],[class*="Option"],[class*="dropdown-item"],div,span')]
+      .filter(item => isVisible(item) && !item.querySelector('input,textarea,select') && text(item).length <= 24)
+      .filter(item => ![...item.children].some(child => samePlace(text(child), wanted)));
+    return candidates.find(item => samePlace(text(item), wanted));
+  };
   const write = async (el, value) => {
     if (value == null || value === '') return 'missing';
+    if (Array.isArray(value)) {
+      if (!(el.readOnly || el.getAttribute('role') === 'combobox')) return 'unsupported';
+      el.click();
+      for (const part of value) {
+        await new Promise(resolve => setTimeout(resolve, 120));
+        const option = findOption(part);
+        if (!option) return 'unsupported';
+        option.click();
+      }
+      await new Promise(resolve => setTimeout(resolve, 80));
+      return value.every(part => norm(text(el.parentElement)).includes(norm(part).replace(/[省市区县]/g, ''))) ? 'filled' : 'unsupported';
+    }
     if (norm(value) === '至今') {
       let row = el.parentElement;
       for (let depth = 0; row && depth < 4; depth++, row = row.parentElement) {
@@ -98,8 +121,15 @@ globalThis.resumeToolFill = async function (profile, fields, recordTypes) {
       notify(el);
       return 'filled';
     }
+    if (el.type === 'month' && /^\d{4}-\d{2}-\d{2}$/.test(String(value))) value = String(value).slice(0, 7);
     if (el.type === 'date' && !/^\d{4}-\d{2}-\d{2}$/.test(String(value))) return 'unsupported';
     if (el.type === 'month' && !/^\d{4}-\d{2}$/.test(String(value))) return 'unsupported';
+    if (el.type !== 'date' && el.type !== 'month' && /^\d{4}-\d{2}(-\d{2})?$/.test(String(value))) {
+      const hint = [el.placeholder, el.getAttribute('data-format'), el.getAttribute('format')].filter(Boolean).join(' ');
+      if (/年.*月/.test(hint)) value = String(value).replace(/^(\d{4})-(\d{2})(?:-(\d{2}))?$/, (_, year, month, day) => `${year}年${month}月${day ? `${day}日` : ''}`);
+      else if (/y{2,4}\/m{1,2}/i.test(hint)) value = String(value).replaceAll('-', '/');
+      else if (/y{2,4}\.m{1,2}/i.test(hint)) value = String(value).replaceAll('-', '.');
+    }
     if (el.type === 'checkbox' || el.type === 'radio') {
       const choice = norm([el.value, ...ownLabels(el), text(el.parentElement).slice(0, 30)].join(' '));
       if (!choice.includes(norm(value))) return 'unsupported';
@@ -109,7 +139,7 @@ globalThis.resumeToolFill = async function (profile, fields, recordTypes) {
     }
     if (el.tagName === 'SELECT') {
       const wanted = norm(value);
-      const option = [...el.options].find(item => norm(item.value) === wanted || norm(text(item)) === wanted)
+      const option = [...el.options].find(item => samePlace(item.value, wanted) || samePlace(text(item), wanted))
         || [...el.options].find(item => wanted && norm(text(item)).includes(wanted));
       if (!option) return 'unsupported';
       el.value = option.value;
@@ -123,18 +153,23 @@ globalThis.resumeToolFill = async function (profile, fields, recordTypes) {
         const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set;
         if (setter) setter.call(el, String(value)); else el.value = String(value);
         notify(el);
-        await new Promise(resolve => setTimeout(resolve, 0));
+        el.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+        await new Promise(resolve => setTimeout(resolve, 100));
         return el.value === String(value) ? 'filled' : 'unsupported';
       }
       el.click();
       await new Promise(resolve => setTimeout(resolve, 120));
-      const wanted = norm(value);
-      const option = [...document.querySelectorAll('[role="option"],li,[class*="option"],[class*="Option"],[class*="dropdown-item"]')]
-        .find(item => isVisible(item) && norm(text(item)) === wanted && !item.contains(el));
+      let option = findOption(value);
+      if (!option && el.parentElement) {
+        el.parentElement.click();
+        await new Promise(resolve => setTimeout(resolve, 120));
+        option = findOption(value);
+      }
       if (!option) return 'unsupported';
       option.click();
       notify(el);
-      return 'filled';
+      await new Promise(resolve => setTimeout(resolve, 80));
+      return samePlace(el.value || text(el.parentElement), value) || norm(text(el.parentElement)).includes(norm(value)) ? 'filled' : 'unsupported';
     }
     const proto = el.tagName === 'TEXTAREA' ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
     const setter = Object.getOwnPropertyDescriptor(proto, 'value')?.set;
@@ -168,7 +203,23 @@ globalThis.resumeToolFill = async function (profile, fields, recordTypes) {
     el.dataset.resumeToolMark = status;
     if (stats.report.length < 120) stats.report.push({ label: String(label).slice(0, 48), status });
   };
-  const visibleLabel = el => ownLabels(el)[0] || rowLabel(el) || geometricLabel(el) || '未标注字段';
+  const originalLabels = new Map(allControls().map(el => [el, ownLabels(el)[0] || rowLabel(el) || geometricLabel(el) || '未标注字段']));
+  const visibleLabel = el => originalLabels.get(el) || ownLabels(el)[0] || rowLabel(el) || geometricLabel(el) || '未标注字段';
+  const placeTarget = el => {
+    const label = norm(visibleLabel(el));
+    const kind = label.includes('籍贯') || label.includes('户籍') ? 'hometown' : label.includes('现居') || label.includes('居住地') ? 'residence' : null;
+    if (!kind) return null;
+    const title = kind === 'hometown' ? '籍贯' : '现居住地';
+    const parts = ['Province', 'City', 'District'].map(suffix => profile[kind + suffix]);
+    const explicit = label.includes('省份') || label.endsWith('省') ? 0 : label.includes('城市') || label.endsWith('市') ? 1 : label.includes('区县') || label.endsWith('区') ? 2 : -1;
+    if (explicit >= 0) return { label: `${title} · ${['省份', '城市', '区县'][explicit]}`, value: parts[explicit] };
+    const siblings = allControls().filter(item => norm(visibleLabel(item)) === label);
+    if (siblings.length >= 2 && siblings.length <= 3) {
+      const index = siblings.indexOf(el);
+      return { label: `${title} · ${['省份', '城市', '区县'][index]}`, value: parts[index] };
+    }
+    return { label: title, value: el.readOnly || el.getAttribute('role') === 'combobox' ? parts.filter(Boolean) : profile[kind] };
+  };
   const track = async (el, value, label) => {
     stats.recognized++;
     let status;
@@ -218,6 +269,13 @@ globalThis.resumeToolFill = async function (profile, fields, recordTypes) {
   }
   for (const el of allControls()) {
     if (used.has(el) || (!isVisible(el) && el.type !== 'file')) continue;
+    const place = placeTarget(el);
+    if (place) { await track(el, place.value, place.label); continue; }
+    const controlLabel = norm(visibleLabel(el));
+    if (/证件号码|证件号/.test(controlLabel) && (el.tagName === 'SELECT' || el.readOnly || el.getAttribute('role') === 'combobox')) {
+      await track(el, profile.identityType, '证件类型');
+      continue;
+    }
     const field = matchField(el, fields.filter(item => Boolean(item.file) === (el.type === 'file')));
     if (field) await track(el, profile[field.key], field.label);
     else {

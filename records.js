@@ -3,9 +3,14 @@ export const recordTypes = [
   { key: 'educationEntries', title: '教育经历', addText: '新增教育经历', fields: [
     { key: 'school', label: '学校', terms: ['学校名称', '毕业院校', '就读学校', '学校', '院校', 'university', 'college', 'school'] },
     { key: 'degree', label: '学历', terms: ['最高学历', '教育程度', '学历', '学位', 'degree'] },
+    { key: 'studyMode', label: '学习形式', terms: ['学习形式', '学习方式', '培养方式', '教育形式', 'study mode'] },
     { key: 'major', label: '专业', terms: ['专业', 'major'] },
     { key: 'startDate', label: '入学时间', terms: ['入学', '开始时间', '起始时间', 'start date'] },
     { key: 'endDate', label: '毕业时间', terms: ['毕业时间', '结束时间', '终止时间', 'end date'] },
+    { key: 'gpa', label: '成绩（GPA）', terms: ['成绩gpa', 'gpa', '平均绩点'] },
+    { key: 'rank', label: '专业排名', terms: ['专业排名', '班级排名', '排名', 'rank'] },
+    { key: 'languageType', label: '语言类型', terms: ['语言类型', '语种', '语言种类'] },
+    { key: 'languageLevel', label: '掌握程度', terms: ['掌握程度', '语言水平', '熟练程度', '语言能力'] },
     { key: 'description', label: '补充说明', terms: ['课程', '描述', '说明', 'description'], multiline: true }
   ] },
   { key: 'workEntries', title: '工作 / 实习经历', addText: '新增工作经历', fields: [
