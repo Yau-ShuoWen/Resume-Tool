@@ -20,11 +20,7 @@ export const fields = [
   { key: 'github', label: 'GitHub', terms: ['github', '代码仓库'] },
   { key: 'linkedin', label: 'LinkedIn', terms: ['linkedin', '领英'] },
   { key: 'summary', label: '个人简介', terms: ['个人简介', '自我介绍', '自我评价', '个人优势', 'summary', 'about me', 'profile'] },
-  { key: 'education', label: '教育经历', terms: ['教育经历', '教育背景', 'education history', 'education experience'] },
-  { key: 'experience', label: '工作经历', terms: ['工作经历', '实习经历', '职业经历', 'work history', 'professional experience'] },
-  { key: 'projects', label: '项目经历', terms: ['项目经历', '项目经验', 'project experience', 'projects'] },
   { key: 'skills', label: '技能', terms: ['专业技能', '技能特长', '技能', 'skills'] },
-  { key: 'certificates', label: '证书奖项', terms: ['证书', '获奖经历', '荣誉奖项', 'certificates', 'awards'] },
   { key: 'resumeFile', label: '简历文件', terms: ['简历附件', '上传简历', '简历文件', 'resume', 'cv', 'upload resume'], file: true },
   { key: 'coverLetterFile', label: '求职信文件', terms: ['求职信附件', '上传求职信', 'cover letter'], file: true }
 ];
@@ -33,6 +29,6 @@ export const groups = [
   { title: '基本信息', keys: ['name', 'gender', 'birthDate', 'phone', 'email', 'city', 'address'] },
   { title: '教育与工作', keys: ['school', 'degree', 'major', 'graduationDate', 'workYears', 'company', 'position', 'targetPosition', 'salary'] },
   { title: '链接', keys: ['website', 'github', 'linkedin'] },
-  { title: '简历内容', keys: ['summary', 'education', 'experience', 'projects', 'skills', 'certificates'] },
+  { title: '其他内容', keys: ['summary', 'skills'] },
   { title: '附件', keys: ['resumeFile', 'coverLetterFile'] }
 ];

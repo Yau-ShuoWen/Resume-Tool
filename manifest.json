@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "简历表单助手",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "description": "维护个人资料、预览简历，并按需填入招聘表单。",
   "permissions": ["storage", "activeTab", "scripting"],
   "action": { "default_popup": "popup.html" },

@@ -44,7 +44,7 @@ export function fillPage(profile, fields) {
   let skipped = 0;
   const radioDone = new Set();
   for (const el of controls) {
-    if (!visible(el) || el.disabled || el.readOnly || ['hidden', 'submit', 'reset', 'button', 'image', 'password'].includes(el.type)) continue;
+    if (!visible(el) || el.disabled || el.readOnly || el.dataset.resumeToolRecordFilled === 'true' || ['hidden', 'submit', 'reset', 'button', 'image', 'password'].includes(el.type)) continue;
     const field = match(el);
     if (!field) { skipped++; continue; }
     const value = profile[field.key];

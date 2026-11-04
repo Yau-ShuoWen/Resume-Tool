@@ -1,8 +1,9 @@
-import { defaultProfile } from './defaults.js';
+import { defaultProfile, defaultRecords } from './defaults.js';
 
 export const PROFILE_KEY = 'profile';
 const DEFAULTS_VERSION_KEY = 'defaultsVersion';
-const DEFAULTS_VERSION = 2;
+const DEFAULTS_VERSION = 3;
+const legacyKeys = { educationEntries: 'education', workEntries: 'experience', projectEntries: 'projects', awardEntries: 'certificates' };
 
 async function bundledResume() {
   const response = await fetch(chrome.runtime.getURL('default-resume.pdf'));
@@ -14,10 +15,21 @@ async function bundledResume() {
 export async function loadProfile() {
   const state = await chrome.storage.local.get([PROFILE_KEY, DEFAULTS_VERSION_KEY]);
   if (state[DEFAULTS_VERSION_KEY] >= DEFAULTS_VERSION) return state[PROFILE_KEY] || {};
-  const profile = { ...defaultProfile };
-  try {
-    profile.resumeFile = await bundledResume();
-  } catch (_) { /* Text profile still works if the bundled file is unavailable. */ }
+  const profile = state[DEFAULTS_VERSION_KEY] >= 2 ? { ...state[PROFILE_KEY] } : { ...defaultProfile };
+  for (const [key, entries] of Object.entries(defaultRecords)) {
+    if (Array.isArray(profile[key])) continue;
+    profile[key] = structuredClone(entries);
+    const legacyKey = legacyKeys[key];
+    const legacy = profile[legacyKey];
+    if (legacy && legacy !== defaultProfile[legacyKey] && profile[key][0]) {
+      profile[key][0].description = `${profile[key][0].description || ''}\n\n之前填写的补充内容：\n${legacy}`.trim();
+    }
+    delete profile[legacyKey];
+  }
+  if (!profile.resumeFile?.data) {
+    try { profile.resumeFile = await bundledResume(); }
+    catch (_) { /* Text profile still works if the bundled file is unavailable. */ }
+  }
   await chrome.storage.local.set({ [PROFILE_KEY]: profile, [DEFAULTS_VERSION_KEY]: DEFAULTS_VERSION });
   return profile;
 }

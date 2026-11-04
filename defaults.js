@@ -18,3 +18,20 @@ export const defaultProfile = {
   skills: '开发语言：Java（项目开发）、C++（算法竞赛）\n后端：Spring Boot\n数据库：MySQL\n前端 / 跨端：Vue、Uni-App\n英语：2024.06 通过 CET-4；2024.12 通过 CET-6\n校园任职：参与 ACM 算法实验室；2024.12—2026.07 担任副主席。',
   certificates: '2025.04 团体程序设计天梯赛 · 团体三等奖\n2025.05 CCPC 重庆市大学生程序设计大赛 · 银奖\n2025.06 ICPC 四川省大学生程序设计大赛 · 铜奖\n2025.06 蓝桥杯软件赛 · 省赛一等奖、国赛二等奖\n2025.08 码蹄杯程序设计大赛 · 省赛银奖、国赛铜奖\n2025.08 百度之星程序设计大赛 · 初赛银奖、决赛铜奖'
 };
+
+export const defaultRecords = {
+  educationEntries: [{ school: '成都东软学院', degree: '本科', major: '软件工程', startDate: '2023-09', endDate: '2027-07', description: '专业课程：数据结构、Java 程序设计、数据库原理与应用、Web 框架开发、Android 应用开发、软件测试。' }],
+  workEntries: [
+    { company: '杭州九面明途科技有限公司', position: '见习程序员', startDate: '2026-07', endDate: '至今', description: '参与“面试精灵”面试助手软件从零到一的开发，产品已上线 Android 应用商店、App Store 及官网（interviewelf.com）。\n前端 / 跨端：使用 Uni-App 重写原 Vue 移动端前端；搭建命令行本地打包流程；统一移动端与网页端导航逻辑，排查动画和 SVG 图标等兼容性问题。\n后端 / 代码治理：统一早期 API 封装及返回值、状态码；参与排查开发与测试环境数据不一致；重构应用内付费结构；抽象不同题型的共性结构。' },
+    { company: '昆山新莱洁净应用材料股份有限公司', position: '软件开发实习岗', startDate: '2025-06', endDate: '2025-09', description: '参与基础培训，在积分秒杀系统项目早期协助后端搭建。编写 MySQL 增删改查语句，接入 Redis 缓存，参与接入 RocketMQ 消息队列。' }
+  ],
+  projectEntries: [{ name: '豫章词｜方言词典网站', role: '个人独立全栈项目', startDate: '', endDate: '持续开发中', url: 'https://yuzhangci.com', description: '独立完成产品设计与前后端开发，使用 Vibe Coding 辅助编码。前后端代码合计 60,000+ 行，数据库表 70+ 张。实现方言词典核心功能，持续录入方言数据并进行书籍电子化。基于 Markdown 扩展自定义富文本结构，满足词典内容展示需求。' }],
+  awardEntries: [
+    { name: '团体程序设计天梯赛 · 团体三等奖', date: '2025-04' },
+    { name: 'CCPC 重庆市大学生程序设计大赛 · 银奖', date: '2025-05' },
+    { name: 'ICPC 四川省大学生程序设计大赛 · 铜奖', date: '2025-06' },
+    { name: '蓝桥杯软件赛 · 省赛一等奖、国赛二等奖', date: '2025-06' },
+    { name: '码蹄杯程序设计大赛 · 省赛银奖、国赛铜奖', date: '2025-08' },
+    { name: '百度之星程序设计大赛 · 初赛银奖、决赛铜奖', date: '2025-08' }
+  ]
+};
