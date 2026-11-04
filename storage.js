@@ -2,7 +2,7 @@ import { defaultProfile } from './defaults.js';
 
 export const PROFILE_KEY = 'profile';
 const DEFAULTS_VERSION_KEY = 'defaultsVersion';
-const DEFAULTS_VERSION = 1;
+const DEFAULTS_VERSION = 2;
 
 async function bundledResume() {
   const response = await fetch(chrome.runtime.getURL('default-resume.pdf'));
@@ -14,12 +14,9 @@ async function bundledResume() {
 export async function loadProfile() {
   const state = await chrome.storage.local.get([PROFILE_KEY, DEFAULTS_VERSION_KEY]);
   if (state[DEFAULTS_VERSION_KEY] >= DEFAULTS_VERSION) return state[PROFILE_KEY] || {};
-  const profile = { ...state[PROFILE_KEY] };
-  for (const [key, value] of Object.entries(defaultProfile)) {
-    if (profile[key] == null || profile[key] === '') profile[key] = value;
-  }
+  const profile = { ...defaultProfile };
   try {
-    if (!profile.resumeFile?.data) profile.resumeFile = await bundledResume();
+    profile.resumeFile = await bundledResume();
   } catch (_) { /* Text profile still works if the bundled file is unavailable. */ }
   await chrome.storage.local.set({ [PROFILE_KEY]: profile, [DEFAULTS_VERSION_KEY]: DEFAULTS_VERSION });
   return profile;
