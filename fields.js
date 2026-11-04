@@ -13,7 +13,8 @@ export const fields = [
   { key: 'graduationDate', label: '毕业时间', terms: ['毕业时间', '毕业日期', '毕业年份', 'graduation date', 'graduation year'] },
   { key: 'workYears', label: '工作年限', terms: ['工作年限', '工作经验年限', 'years of experience', 'work experience years'] },
   { key: 'company', label: '最近任职公司', terms: ['最近任职公司', '上一家公司', '最近公司', 'current company', 'last company'] },
-  { key: 'position', label: '最近职位', terms: ['最近职位', '上一份职位', '应聘职位', '目标岗位', 'position', 'job title'] },
+  { key: 'position', label: '最近职位', terms: ['最近职位', '上一份职位', '当前职位', 'current position', 'last position'] },
+  { key: 'targetPosition', label: '目标岗位', terms: ['应聘职位', '目标岗位', '意向职位', '申请岗位', 'desired position', 'applied position', 'job title'] },
   { key: 'salary', label: '期望薪资', terms: ['期望薪资', '期望薪酬', '薪资要求', 'expected salary'] },
   { key: 'website', label: '个人网站', terms: ['个人网站', '作品链接', '作品集链接', 'portfolio', 'personal website'] },
   { key: 'github', label: 'GitHub', terms: ['github', '代码仓库'] },
@@ -30,7 +31,7 @@ export const fields = [
 
 export const groups = [
   { title: '基本信息', keys: ['name', 'gender', 'birthDate', 'phone', 'email', 'city', 'address'] },
-  { title: '教育与工作', keys: ['school', 'degree', 'major', 'graduationDate', 'workYears', 'company', 'position', 'salary'] },
+  { title: '教育与工作', keys: ['school', 'degree', 'major', 'graduationDate', 'workYears', 'company', 'position', 'targetPosition', 'salary'] },
   { title: '链接', keys: ['website', 'github', 'linkedin'] },
   { title: '简历内容', keys: ['summary', 'education', 'experience', 'projects', 'skills', 'certificates'] },
   { title: '附件', keys: ['resumeFile', 'coverLetterFile'] }

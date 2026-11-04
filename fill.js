@@ -71,6 +71,8 @@ export function fillPage(profile, fields) {
         el.textContent = String(value);
         emit(el);
       } else {
+        if (el.type === 'date' && !/^\d{4}-\d{2}-\d{2}$/.test(String(value))) { skipped++; continue; }
+        if (el.type === 'month' && !/^\d{4}-\d{2}$/.test(String(value))) { skipped++; continue; }
         const setter = Object.getOwnPropertyDescriptor(el.tagName === 'TEXTAREA' ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype, 'value')?.set;
         if (setter) setter.call(el, String(value)); else el.value = String(value);
         emit(el);

@@ -13,7 +13,7 @@ const add = (tag, text, parent = root, className = '') => {
 add('h2', data.name || '未填写姓名');
 const meta = [data.phone, data.email, data.city, data.address, data.website, data.github, data.linkedin].filter(Boolean);
 if (meta.length) add('p', meta.join('  ·  '), root, 'resume-meta');
-const facts = [data.gender, data.birthDate, data.school, data.degree, data.major, data.graduationDate, data.workYears && `${data.workYears} 工作经验`, data.company, data.position, data.salary && `期望薪资 ${data.salary}`].filter(Boolean);
+const facts = [data.gender, data.birthDate, data.school, data.degree, data.major, data.graduationDate, data.workYears && `${data.workYears} 工作经验`, data.company, data.position, data.targetPosition && `目标岗位 ${data.targetPosition}`, data.salary && `期望薪资 ${data.salary}`].filter(Boolean);
 if (facts.length) add('p', facts.join('  ·  '), root, 'resume-facts');
 for (const [title, key] of [['个人简介', 'summary'], ['教育经历', 'education'], ['工作经历', 'experience'], ['项目经历', 'projects'], ['专业技能', 'skills'], ['证书奖项', 'certificates']]) {
   if (!data[key]) continue;
