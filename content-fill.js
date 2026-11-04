@@ -9,7 +9,8 @@ globalThis.resumeToolFill = async function (profile, fields, recordTypes) {
   const labelCache = [...document.querySelectorAll('label')];
   const genericPlaceholder = /^(请输入|请选择|请填写|pleaseenter|pleaseselect|select|enter)$/i;
   const ownLabels = el => {
-    const parts = [el.getAttribute('aria-label'), el.getAttribute('data-label'), el.getAttribute('title')];
+    const title = el.getAttribute('title');
+    const parts = [el.getAttribute('aria-label'), el.getAttribute('data-label'), title?.startsWith('简历表单助手：') ? '' : title];
     const labelledBy = el.getAttribute('aria-labelledby');
     if (labelledBy) for (const id of labelledBy.split(/\s+/)) parts.push(text(document.getElementById(id)));
     parts.push(...[...(el.labels || [])].map(text));
@@ -19,6 +20,9 @@ globalThis.resumeToolFill = async function (profile, fields, recordTypes) {
     return parts.filter(part => part && !genericPlaceholder.test(norm(part)));
   };
   const rowLabel = el => {
+    const formItem = el.closest('.form-item,[class*="formItem"]');
+    const formLabel = formItem?.querySelector('label,[class*="form-item__title"]');
+    if (formLabel && text(formLabel).length <= 40) return text(formLabel);
     let node = el.parentElement;
     for (let depth = 0; node && depth < 5; depth++, node = node.parentElement) {
       const count = node.querySelectorAll('input,textarea,select,[contenteditable="true"],[role="combobox"]').length;
@@ -89,10 +93,10 @@ globalThis.resumeToolFill = async function (profile, fields, recordTypes) {
     return target.length >= 2 && choice.includes(target) && choice.length - target.length <= 4 ? 50 : 0;
   };
   const findOption = wanted => {
-    const selector = '[role="option"],li,[class*="option"],[class*="Option"],[class*="dropdown-item"],[class*="select-item"],[class*="Select-item"]';
+    const selector = '[role="option"],li,[class*="option"],[class*="Option"],[class*="dropdown-item"],[class*="select-item"],[class*="Select-item"],[class*="selectList__listItem"],[class*="single-select-list__item"]';
     const options = [...document.querySelectorAll(selector)].filter(item => isVisible(item) && !item.querySelector('input,textarea,select') && text(item).length <= 32);
     const fallback = [...document.querySelectorAll('div,span')].filter(item =>
-      item.closest('[role="listbox"],[class*="dropdown"],[class*="Dropdown"],[class*="popup"],[class*="Popup"],[class*="menu"],[class*="Menu"]')
+      item.closest('[role="listbox"],[class*="dropdown"],[class*="Dropdown"],[class*="popup"],[class*="Popup"],[class*="menu"],[class*="Menu"],[class*="selectList"],[class*="select-list"]')
       && isVisible(item) && !item.querySelector('input,textarea,select') && text(item).length <= 32);
     return [...new Set([...options, ...fallback])]
       .filter(item => ![...item.children].some(child => optionScore(text(child), wanted) > 0))
@@ -108,7 +112,15 @@ globalThis.resumeToolFill = async function (profile, fields, recordTypes) {
     }
     return null;
   };
-  const choiceTrigger = el => el.closest('[role="combobox"],[aria-haspopup="listbox"],[class*="select-selector"],[class*="select__control"]') || el;
+  const selectRoot = el => {
+    let node = el;
+    for (let depth = 0; node && depth < 7; depth++, node = node.parentElement) {
+      if ([...node.classList].some(name => /(?:^|[-_])select$/i.test(name))) return node;
+    }
+    return null;
+  };
+  const choiceTrigger = el => el.closest('[role="combobox"],[aria-haspopup="listbox"],[class*="select-selector"],[class*="select__control"]') || selectRoot(el) || el;
+  const choiceWidget = el => el.readOnly || el.getAttribute('role') === 'combobox' || el.matches('[aria-haspopup="listbox"],[class*="select-selector"],[class*="select__control"]') || !!selectRoot(el);
   const choiceDisplay = el => {
     const trigger = choiceTrigger(el);
     const parent = trigger.parentElement;
@@ -123,9 +135,12 @@ globalThis.resumeToolFill = async function (profile, fields, recordTypes) {
       target.click();
       let option = await waitForOption(value);
       if (!option && el.tagName === 'INPUT' && !el.readOnly) {
+        const popupSearch = [...document.querySelectorAll('input[placeholder*="搜索"],input[placeholder*="Search"],input[placeholder*="search"]')]
+          .find(input => isVisible(input) && input.closest('[class*="selectList"],[class*="select-list"],[role="listbox"],[class*="dropdown"],[class*="popup"]'));
+        const searchInput = popupSearch || el;
         const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set;
-        if (setter) setter.call(el, String(value)); else el.value = String(value);
-        el.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertText' }));
+        if (setter) setter.call(searchInput, String(value)); else searchInput.value = String(value);
+        searchInput.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertText' }));
         option = await waitForOption(value);
       }
       if (!option) continue;
@@ -138,7 +153,7 @@ globalThis.resumeToolFill = async function (profile, fields, recordTypes) {
   const write = async (el, value) => {
     if (value == null || value === '') return 'missing';
     if (Array.isArray(value)) {
-      if (!(el.readOnly || el.getAttribute('role') === 'combobox' || el.matches('[aria-haspopup="listbox"],[class*="select-selector"],[class*="select__control"]'))) return 'unsupported';
+      if (!choiceWidget(el)) return 'unsupported';
       for (const part of value) {
         if (!await chooseCustom(el, part)) return 'unsupported';
       }
@@ -192,7 +207,7 @@ globalThis.resumeToolFill = async function (profile, fields, recordTypes) {
       return 'filled';
     }
     if (el.isContentEditable) { el.textContent = String(value); notify(el); return 'filled'; }
-    if (el.readOnly || el.getAttribute('role') === 'combobox' || el.matches('[aria-haspopup="listbox"],[class*="select-selector"],[class*="select__control"]') || (el.tagName === 'INPUT' && genericPlaceholder.test(norm(el.placeholder)) && !/日期|时间/.test(rowLabel(el)))) {
+    if (choiceWidget(el) || (el.tagName === 'INPUT' && genericPlaceholder.test(norm(el.placeholder)) && !/日期|时间/.test(rowLabel(el)))) {
       if (el.type === 'date' || el.type === 'month' || /日期|时间/.test(rowLabel(el))) {
         if (el.tagName !== 'INPUT') return 'unsupported';
         const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set;
