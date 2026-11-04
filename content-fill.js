@@ -3,7 +3,7 @@ globalThis.resumeToolFill = async function (profile, fields, recordTypes) {
   const norm = value => String(value || '').toLowerCase().replace(/[\s\u00a0:：*＊（）()\[\]【】_\-]/g, '');
   const text = el => (el?.innerText || el?.textContent || '').trim();
   const isVisible = el => !!el?.getClientRects().length && getComputedStyle(el).visibility !== 'hidden';
-  const allControls = () => [...document.querySelectorAll('input,textarea,select,[contenteditable="true"],[role="combobox"]')]
+  const allControls = () => [...document.querySelectorAll('input,textarea,select,[contenteditable="true"],[role="combobox"],[aria-haspopup="listbox"],[class*="select-selector"],[class*="select__control"]')]
     .filter(el => !el.disabled && !['hidden', 'submit', 'reset', 'button', 'image', 'password'].includes(el.type))
     .filter(el => !el.querySelector('input,textarea,select,[contenteditable="true"]'));
   const labelCache = [...document.querySelectorAll('label')];
@@ -79,25 +79,70 @@ globalThis.resumeToolFill = async function (profile, fields, recordTypes) {
     const right = norm(b).replace(/[省市区县族]/g, '');
     return left === right || (right === '共青团员' && left === '团员') || (right === '全日制' && left === '普通全日制');
   };
+  const optionScore = (candidate, wanted) => {
+    const choice = norm(candidate);
+    const target = norm(wanted);
+    if (samePlace(choice, target)) return 100;
+    if (target === '本科' && /^(大学|普通)?本科(及以上|学历)?$/.test(choice)) return 85;
+    if (target === '全日制' && /^(普通|统招)?全日制$/.test(choice)) return 85;
+    if (choice.startsWith('非') && !target.startsWith('非')) return 0;
+    return target.length >= 2 && choice.includes(target) && choice.length - target.length <= 4 ? 50 : 0;
+  };
   const findOption = wanted => {
-    const candidates = [...document.querySelectorAll('[role="option"],li,[class*="option"],[class*="Option"],[class*="dropdown-item"],div,span')]
-      .filter(item => isVisible(item) && !item.querySelector('input,textarea,select') && text(item).length <= 24)
-      .filter(item => ![...item.children].some(child => samePlace(text(child), wanted)));
-    return candidates.find(item => samePlace(text(item), wanted));
+    const selector = '[role="option"],li,[class*="option"],[class*="Option"],[class*="dropdown-item"],[class*="select-item"],[class*="Select-item"]';
+    const options = [...document.querySelectorAll(selector)].filter(item => isVisible(item) && !item.querySelector('input,textarea,select') && text(item).length <= 32);
+    const fallback = [...document.querySelectorAll('div,span')].filter(item =>
+      item.closest('[role="listbox"],[class*="dropdown"],[class*="Dropdown"],[class*="popup"],[class*="Popup"],[class*="menu"],[class*="Menu"]')
+      && isVisible(item) && !item.querySelector('input,textarea,select') && text(item).length <= 32);
+    return [...new Set([...options, ...fallback])]
+      .filter(item => ![...item.children].some(child => optionScore(text(child), wanted) > 0))
+      .map(item => ({ item, score: optionScore(text(item), wanted) }))
+      .sort((a, b) => b.score - a.score)
+      .find(entry => entry.score > 0)?.item;
+  };
+  const waitForOption = async wanted => {
+    for (let attempt = 0; attempt < 12; attempt++) {
+      const option = findOption(wanted);
+      if (option) return option;
+      await new Promise(resolve => setTimeout(resolve, 75));
+    }
+    return null;
+  };
+  const choiceTrigger = el => el.closest('[role="combobox"],[aria-haspopup="listbox"],[class*="select-selector"],[class*="select__control"]') || el;
+  const choiceDisplay = el => {
+    const trigger = choiceTrigger(el);
+    const parent = trigger.parentElement;
+    const parentText = parent?.querySelector('[role="listbox"],[class*="dropdown"],[class*="Dropdown"],[class*="menu"],[class*="Menu"]') ? '' : text(parent);
+    return [el.value, el.getAttribute('aria-valuetext'), text(trigger), parentText].filter(Boolean);
+  };
+  const chooseCustom = async (el, value) => {
+    if (choiceDisplay(el).some(part => optionScore(part, value) >= 100)) return true;
+    const trigger = choiceTrigger(el);
+    const targets = [...new Set([trigger, el, trigger.parentElement, trigger.parentElement?.parentElement].filter(Boolean))];
+    for (const target of targets) {
+      target.click();
+      let option = await waitForOption(value);
+      if (!option && el.tagName === 'INPUT' && !el.readOnly) {
+        const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set;
+        if (setter) setter.call(el, String(value)); else el.value = String(value);
+        el.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertText' }));
+        option = await waitForOption(value);
+      }
+      if (!option) continue;
+      option.click();
+      await new Promise(resolve => setTimeout(resolve, 120));
+      if (choiceDisplay(el).some(part => optionScore(part, value) > 0)) return true;
+    }
+    return false;
   };
   const write = async (el, value) => {
     if (value == null || value === '') return 'missing';
     if (Array.isArray(value)) {
-      if (!(el.readOnly || el.getAttribute('role') === 'combobox')) return 'unsupported';
-      el.click();
+      if (!(el.readOnly || el.getAttribute('role') === 'combobox' || el.matches('[aria-haspopup="listbox"],[class*="select-selector"],[class*="select__control"]'))) return 'unsupported';
       for (const part of value) {
-        await new Promise(resolve => setTimeout(resolve, 120));
-        const option = findOption(part);
-        if (!option) return 'unsupported';
-        option.click();
+        if (!await chooseCustom(el, part)) return 'unsupported';
       }
-      await new Promise(resolve => setTimeout(resolve, 80));
-      return value.every(part => norm(text(el.parentElement)).includes(norm(part).replace(/[省市区县]/g, ''))) ? 'filled' : 'unsupported';
+      return 'filled';
     }
     if (norm(value) === '至今') {
       let row = el.parentElement;
@@ -147,7 +192,7 @@ globalThis.resumeToolFill = async function (profile, fields, recordTypes) {
       return 'filled';
     }
     if (el.isContentEditable) { el.textContent = String(value); notify(el); return 'filled'; }
-    if (el.readOnly || el.getAttribute('role') === 'combobox') {
+    if (el.readOnly || el.getAttribute('role') === 'combobox' || el.matches('[aria-haspopup="listbox"],[class*="select-selector"],[class*="select__control"]') || (el.tagName === 'INPUT' && genericPlaceholder.test(norm(el.placeholder)) && !/日期|时间/.test(rowLabel(el)))) {
       if (el.type === 'date' || el.type === 'month' || /日期|时间/.test(rowLabel(el))) {
         if (el.tagName !== 'INPUT') return 'unsupported';
         const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set;
@@ -157,19 +202,9 @@ globalThis.resumeToolFill = async function (profile, fields, recordTypes) {
         await new Promise(resolve => setTimeout(resolve, 100));
         return el.value === String(value) ? 'filled' : 'unsupported';
       }
-      el.click();
-      await new Promise(resolve => setTimeout(resolve, 120));
-      let option = findOption(value);
-      if (!option && el.parentElement) {
-        el.parentElement.click();
-        await new Promise(resolve => setTimeout(resolve, 120));
-        option = findOption(value);
-      }
-      if (!option) return 'unsupported';
-      option.click();
+      if (!await chooseCustom(el, value)) return 'unsupported';
       notify(el);
-      await new Promise(resolve => setTimeout(resolve, 80));
-      return samePlace(el.value || text(el.parentElement), value) || norm(text(el.parentElement)).includes(norm(value)) ? 'filled' : 'unsupported';
+      return 'filled';
     }
     const proto = el.tagName === 'TEXTAREA' ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
     const setter = Object.getOwnPropertyDescriptor(proto, 'value')?.set;
