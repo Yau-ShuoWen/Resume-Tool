@@ -2,7 +2,7 @@ import { defaultProfile, defaultRecords } from './defaults.js';
 
 export const PROFILE_KEY = 'profile';
 const DEFAULTS_VERSION_KEY = 'defaultsVersion';
-const DEFAULTS_VERSION = 3;
+const DEFAULTS_VERSION = 4;
 const legacyKeys = { educationEntries: 'education', workEntries: 'experience', projectEntries: 'projects', awardEntries: 'certificates' };
 
 async function bundledResume() {
@@ -21,10 +21,10 @@ export async function loadProfile() {
     profile[key] = structuredClone(entries);
     const legacyKey = legacyKeys[key];
     const legacy = profile[legacyKey];
-    if (legacy && legacy !== defaultProfile[legacyKey] && profile[key][0]) {
+    if (legacyKey && legacy && legacy !== defaultProfile[legacyKey] && profile[key][0]) {
       profile[key][0].description = `${profile[key][0].description || ''}\n\n之前填写的补充内容：\n${legacy}`.trim();
     }
-    delete profile[legacyKey];
+    if (legacyKey) delete profile[legacyKey];
   }
   if (!profile.resumeFile?.data) {
     try { profile.resumeFile = await bundledResume(); }

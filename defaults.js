@@ -33,5 +33,6 @@ export const defaultRecords = {
     { name: '蓝桥杯软件赛 · 省赛一等奖、国赛二等奖', date: '2025-06' },
     { name: '码蹄杯程序设计大赛 · 省赛银奖、国赛铜奖', date: '2025-08' },
     { name: '百度之星程序设计大赛 · 初赛银奖、决赛铜奖', date: '2025-08' }
-  ]
+  ],
+  campusEntries: [{ role: 'ACM 算法实验室副主席', startDate: '2024-12', endDate: '2026-07', description: '参与 ACM 算法实验室，担任副主席。' }]
 };
