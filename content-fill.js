@@ -62,8 +62,12 @@ globalThis.resumeToolFill = async function (profile, fields, recordTypes) {
   };
   const matchField = (el, candidates) => {
     const { primary, secondary } = descriptor(el);
+    const phoenixLabel = el.closest('.form-item--phoenix')?.querySelector('.form-item__text')?.textContent?.trim() || '';
     let best = null, bestScore = 0;
     for (const field of candidates) for (const term of field.terms) {
+      if ((phoenixLabel === '最高学位' && field.key === 'degree')
+        || (phoenixLabel === '毕业院校类型' && field.key === 'school')
+        || (phoenixLabel === '实习岗位类别（资产）' && field.key === 'position')) continue;
       const word = norm(term);
       if (!word) continue;
       const primaryHit = primary.includes(word);
@@ -126,10 +130,13 @@ globalThis.resumeToolFill = async function (profile, fields, recordTypes) {
     const trigger = choiceTrigger(el);
     const parent = trigger.parentElement;
     const parentText = parent?.querySelector('[role="listbox"],[class*="dropdown"],[class*="Dropdown"],[class*="menu"],[class*="Menu"]') ? '' : text(parent);
-    return [el.value, el.getAttribute('aria-valuetext'), text(trigger), parentText].filter(Boolean);
+    const phoenixValue = trigger.closest('.phoenix-select')?.querySelector('.phoenix-select__placeHolder:not(.phoenix-select__placeHolder--show)')?.textContent;
+    return [el.value, el.getAttribute('aria-valuetext'), phoenixValue, text(trigger), parentText].filter(Boolean);
   };
   const chooseCustom = async (el, value) => {
     if (choiceDisplay(el).some(part => optionScore(part, value) >= 100)) return true;
+    const fieldLabel = rowLabel(el);
+    const fieldIndex = allControls().filter(item => rowLabel(item) === fieldLabel && choiceWidget(item)).indexOf(el);
     const trigger = choiceTrigger(el);
     trigger.click();
     let option = await waitForOption(value);
@@ -155,8 +162,9 @@ globalThis.resumeToolFill = async function (profile, fields, recordTypes) {
     }
     if (!option) return false;
     option.click();
-    await new Promise(resolve => setTimeout(resolve, 120));
-    return choiceDisplay(el).some(part => optionScore(part, value) > 0);
+    await new Promise(resolve => setTimeout(resolve, 250));
+    const current = document.contains(el) ? el : allControls().filter(item => rowLabel(item) === fieldLabel && choiceWidget(item))[fieldIndex];
+    return !!current && choiceDisplay(current).some(part => optionScore(part, value) > 0);
   };
   const write = async (el, value) => {
     if (value == null || value === '') return 'missing';
@@ -329,9 +337,14 @@ globalThis.resumeToolFill = async function (profile, fields, recordTypes) {
       if (after <= before) break;
     }
     const map = grouped();
+    const currentBoxes = type.key === 'workEntries' ? sectionControls().filter(el => el.type === 'checkbox' && norm(text(el.closest('.phoenix-checkbox'))).includes('至今')) : [];
     for (const field of type.fields) for (let index = 0; index < entries.length; index++) {
       const el = map.get(field.key)?.[index];
-      if (el && !used.has(el)) await track(el, entries[index]?.[field.key], `${type.title} ${index + 1} · ${field.label}`);
+      if (!el || used.has(el)) continue;
+      if (field.key === 'endDate' && norm(entries[index]?.endDate) === '至今' && currentBoxes[index]) {
+        used.add(el);
+        await track(currentBoxes[index], '至今', `${type.title} ${index + 1} · 至今`);
+      } else await track(el, entries[index]?.[field.key], `${type.title} ${index + 1} · ${field.label}`);
     }
     for (const el of sectionControls()) if (!used.has(el) && isVisible(el)) {
       stats.unmatched++;

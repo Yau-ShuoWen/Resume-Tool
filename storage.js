@@ -2,7 +2,7 @@ import { defaultProfile, defaultRecords } from './defaults.js';
 
 export const PROFILE_KEY = 'profile';
 const DEFAULTS_VERSION_KEY = 'defaultsVersion';
-const DEFAULTS_VERSION = 5;
+const DEFAULTS_VERSION = 6;
 const legacyKeys = { educationEntries: 'education', workEntries: 'experience', projectEntries: 'projects', awardEntries: 'certificates' };
 
 async function bundledResume() {
@@ -16,7 +16,7 @@ export async function loadProfile() {
   const state = await chrome.storage.local.get([PROFILE_KEY, DEFAULTS_VERSION_KEY]);
   if (state[DEFAULTS_VERSION_KEY] >= DEFAULTS_VERSION) return state[PROFILE_KEY] || {};
   const profile = state[DEFAULTS_VERSION_KEY] >= 2 ? { ...state[PROFILE_KEY] } : { ...defaultProfile };
-  for (const key of ['birthDate', 'ethnicity', 'politicalStatus', 'identityNumber', 'identityType', 'heightCm', 'weightKg', 'hometown', 'hometownProvince', 'hometownCity', 'hometownDistrict', 'residence', 'residenceProvince', 'residenceCity', 'residenceDistrict', 'city', 'salary', 'arrivalDate']) {
+  for (const key of ['birthDate', 'birthPlace', 'nationality', 'ethnicity', 'politicalStatus', 'identityNumber', 'identityType', 'heightCm', 'weightKg', 'hometown', 'hometownProvince', 'hometownCity', 'hometownDistrict', 'residence', 'residenceProvince', 'residenceCity', 'residenceDistrict', 'city', 'schoolType', 'highestDegree', 'salary', 'arrivalDate']) {
     if (profile[key] == null || profile[key] === '') profile[key] = defaultProfile[key];
   }
   for (const [key, entries] of Object.entries(defaultRecords)) {
@@ -30,11 +30,14 @@ export async function loadProfile() {
     if (legacyKey) delete profile[legacyKey];
   }
   if (profile.educationEntries?.length) {
-    for (const key of ['studyMode', 'languageType', 'languageLevel']) {
+    for (const key of ['studyMode', 'languageType', 'languageLevel', 'college', 'majorCategory', 'gpa']) {
       if (profile.educationEntries[0][key] == null || profile.educationEntries[0][key] === '') {
         profile.educationEntries[0][key] = defaultRecords.educationEntries[0][key];
       }
     }
+  }
+  for (const entry of profile.workEntries || []) {
+    if (!entry.positionCategory) entry.positionCategory = '其他';
   }
   if (!profile.resumeFile?.data) {
     try { profile.resumeFile = await bundledResume(); }

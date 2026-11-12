@@ -4,6 +4,8 @@ export const defaultProfile = {
   phone: '19033658713',
   email: '2653009930@qq.com',
   birthDate: '2005-06-13',
+  birthPlace: '江西省南昌市西湖区',
+  nationality: '中国',
   ethnicity: '汉',
   politicalStatus: '共青团员',
   identityNumber: '360103200506132717',
@@ -24,6 +26,8 @@ export const defaultProfile = {
   github: 'https://github.com/Yau-ShuoWen',
   school: '成都东软学院',
   degree: '本科',
+  highestDegree: '学士',
+  schoolType: '国内',
   major: '软件工程',
   graduationDate: '2027-07',
   company: '杭州九面明途科技有限公司',
@@ -38,10 +42,10 @@ export const defaultProfile = {
 };
 
 export const defaultRecords = {
-  educationEntries: [{ school: '成都东软学院', degree: '本科', major: '软件工程', studyMode: '全日制', startDate: '2023-09', endDate: '2027-07', languageType: '英语', languageLevel: '熟练', description: '专业课程：数据结构、Java 程序设计、数据库原理与应用、Web 框架开发、Android 应用开发、软件测试。' }],
+  educationEntries: [{ school: '成都东软学院', college: '计算机与软件学院', degree: '本科', major: '软件工程', majorCategory: '工学', studyMode: '全日制', startDate: '2023-09', endDate: '2027-07', gpa: '2.83', languageType: '英语', languageLevel: '熟练', description: '专业课程：数据结构、Java 程序设计、数据库原理与应用、Web 框架开发、Android 应用开发、软件测试。' }],
   workEntries: [
-    { company: '杭州九面明途科技有限公司', position: '见习程序员', startDate: '2026-07', endDate: '至今', description: '参与“面试精灵”面试助手软件从零到一的开发，产品已上线 Android 应用商店、App Store 及官网（interviewelf.com）。\n前端 / 跨端：使用 Uni-App 重写原 Vue 移动端前端；搭建命令行本地打包流程；统一移动端与网页端导航逻辑，排查动画和 SVG 图标等兼容性问题。\n后端 / 代码治理：统一早期 API 封装及返回值、状态码；参与排查开发与测试环境数据不一致；重构应用内付费结构；抽象不同题型的共性结构。' },
-    { company: '昆山新莱洁净应用材料股份有限公司', position: '软件开发实习岗', startDate: '2025-06', endDate: '2025-09', description: '参与基础培训，在积分秒杀系统项目早期协助后端搭建。编写 MySQL 增删改查语句，接入 Redis 缓存，参与接入 RocketMQ 消息队列。' }
+    { company: '杭州九面明途科技有限公司', position: '见习程序员', positionCategory: '其他', startDate: '2026-07', endDate: '至今', description: '参与“面试精灵”面试助手软件从零到一的开发，产品已上线 Android 应用商店、App Store 及官网（interviewelf.com）。\n前端 / 跨端：使用 Uni-App 重写原 Vue 移动端前端；搭建命令行本地打包流程；统一移动端与网页端导航逻辑，排查动画和 SVG 图标等兼容性问题。\n后端 / 代码治理：统一早期 API 封装及返回值、状态码；参与排查开发与测试环境数据不一致；重构应用内付费结构；抽象不同题型的共性结构。' },
+    { company: '昆山新莱洁净应用材料股份有限公司', position: '软件开发实习岗', positionCategory: '其他', startDate: '2025-06', endDate: '2025-09', description: '参与基础培训，在积分秒杀系统项目早期协助后端搭建。编写 MySQL 增删改查语句，接入 Redis 缓存，参与接入 RocketMQ 消息队列。' }
   ],
   projectEntries: [{ name: '豫章词｜方言词典网站', role: '个人独立全栈项目', startDate: '', endDate: '持续开发中', url: 'https://yuzhangci.com', description: '独立完成产品设计与前后端开发，使用 Vibe Coding 辅助编码。前后端代码合计 60,000+ 行，数据库表 70+ 张。实现方言词典核心功能，持续录入方言数据并进行书籍电子化。基于 Markdown 扩展自定义富文本结构，满足词典内容展示需求。' }],
   awardEntries: [

@@ -7,20 +7,19 @@ const result = document.querySelector('#result');
 const details = document.querySelector('#details');
 const reportElement = document.querySelector('#report');
 const saveStatus = document.querySelector('#save-status');
-const saveButton = document.querySelector('#save-bundle');
+const copyButton = document.querySelector('#copy-bundle');
+const downloadButton = document.querySelector('#download-bundle');
 let reportText = '';
 let latestTotals = null;
-const download = (name, content, type) => {
-  const url = URL.createObjectURL(new Blob([content], { type }));
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = name;
-  document.body.append(link);
-  link.click();
-  link.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 60000);
+const compressHtml = async html => {
+  if (!globalThis.CompressionStream) return { html, encoding: 'plain' };
+  const bytes = new Uint8Array(await new Response(new Blob([html]).stream().pipeThrough(new CompressionStream('gzip'))).arrayBuffer());
+  let base64 = '';
+  for (let index = 0; index < bytes.length; index += 8192) {
+    base64 += String.fromCharCode(...bytes.subarray(index, index + 8192));
+  }
+  return { html: btoa(base64), encoding: 'gzip+base64' };
 };
-const fileStamp = () => new Date().toISOString().replace(/[:.]/g, '-');
 const labels = { filled: '已填入', missing: '资料未填', unsupported: '控件暂不支持', unmatched: '未识别' };
 function showReport(totals) {
   latestTotals = totals;
@@ -38,7 +37,8 @@ function showReport(totals) {
     reportElement.append(row);
   }
   reportText = ['简历表单助手诊断（不含填写内容）', result.textContent, ...totals.report.map(item => `${labels[item.status] || item.status}：${item.label}`)].join('\n');
-  saveButton.disabled = false;
+  copyButton.disabled = false;
+  downloadButton.disabled = false;
   details.hidden = false;
 }
 const [initialTab] = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -48,41 +48,67 @@ document.querySelector('#copy-report').addEventListener('click', async () => {
   await navigator.clipboard.writeText(reportText);
   document.querySelector('#copy-report').textContent = '已复制';
 });
-saveButton.addEventListener('click', async () => {
+const captureBundle = async compress => {
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  const previousReport = (await chrome.storage.session.get('lastFillReport')).lastFillReport;
+  if (!tab?.id || previousReport?.tabId !== tab.id || previousReport?.pageUrl !== tab.url) throw new Error('请先在当前页面填入资料');
+  const output = await chrome.scripting.executeScript({
+    target: { tabId: tab.id, allFrames: true },
+    func: () => {
+      const doctype = document.doctype;
+      const prefix = doctype ? `<!DOCTYPE ${doctype.name}${doctype.publicId ? ` PUBLIC "${doctype.publicId}"` : ''}${doctype.systemId ? ` "${doctype.systemId}"` : ''}>\n` : '';
+      return { url: location.href, html: prefix + document.documentElement.outerHTML };
+    }
+  });
+  if (!output.length || !output.some(item => item.frameId === 0 && item.result?.html)) throw new Error('页面内容为空');
+  const pages = await Promise.all(output.map(async item => ({
+    frameId: item.frameId,
+    url: item.result?.url,
+    ...(compress ? await compressHtml(item.result?.html || '') : { html: item.result?.html })
+  })));
+  return {
+    format: compress ? 'resume-tool-diagnostic-v2' : 'resume-tool-diagnostic-v1',
+    capturedAt: new Date().toISOString(),
+    pageUrl: tab.url,
+    diagnosis: { summary: result.textContent, text: reportText, totals: latestTotals },
+    pages
+  };
+};
+copyButton.addEventListener('click', async () => {
   if (!latestTotals) return;
-  saveButton.disabled = true;
+  copyButton.disabled = true;
   saveStatus.textContent = '正在读取当前页面…';
   try {
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    const previousReport = (await chrome.storage.session.get('lastFillReport')).lastFillReport;
-    if (!tab?.id || previousReport?.tabId !== tab.id || previousReport?.pageUrl !== tab.url) throw new Error('请先在当前页面填入资料');
-    const output = await chrome.scripting.executeScript({
-      target: { tabId: tab.id, allFrames: true },
-      func: () => {
-        const doctype = document.doctype;
-        const prefix = doctype ? `<!DOCTYPE ${doctype.name}${doctype.publicId ? ` PUBLIC "${doctype.publicId}"` : ''}${doctype.systemId ? ` "${doctype.systemId}"` : ''}>\n` : '';
-        return { url: location.href, html: prefix + document.documentElement.outerHTML };
-      }
-    });
-    if (!output.length || !output.some(item => item.frameId === 0 && item.result?.html)) throw new Error('页面内容为空');
-    const bundle = {
-      format: 'resume-tool-diagnostic-v1',
-      capturedAt: new Date().toISOString(),
-      pageUrl: tab.url,
-      diagnosis: { summary: result.textContent, text: reportText, totals: latestTotals },
-      pages: output.map(item => ({ frameId: item.frameId, url: item.result?.url, html: item.result?.html }))
-    };
-    download(`简历表单诊断与页面-${fileStamp()}.json`, JSON.stringify(bundle, null, 2), 'application/json;charset=utf-8');
-    saveStatus.textContent = '诊断与页面已保存为一个文件。';
+    await navigator.clipboard.writeText(JSON.stringify(await captureBundle(true)));
+    saveStatus.textContent = '诊断与页面已复制到剪贴板。';
   } catch (error) {
-    saveStatus.textContent = `无法保存：${error.message}。`;
-  } finally { saveButton.disabled = false; }
+    saveStatus.textContent = `无法复制：${error.message}。`;
+  } finally { copyButton.disabled = false; }
+});
+downloadButton.addEventListener('click', async () => {
+  if (!latestTotals) return;
+  downloadButton.disabled = true;
+  saveStatus.textContent = '正在读取当前页面…';
+  try {
+    const url = URL.createObjectURL(new Blob([JSON.stringify(await captureBundle(false))], { type: 'application/json;charset=utf-8' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `简历表单诊断与页面-${new Date().toISOString().replace(/[:.]/g, '-')}.json`;
+    document.body.append(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+    saveStatus.textContent = '诊断与页面已下载。';
+  } catch (error) {
+    saveStatus.textContent = `无法下载：${error.message}。`;
+  } finally { downloadButton.disabled = false; }
 });
 button.addEventListener('click', async () => {
   button.disabled = true;
   latestTotals = null;
   reportText = '';
-  saveButton.disabled = true;
+  copyButton.disabled = true;
+  downloadButton.disabled = true;
   details.hidden = true;
   result.textContent = '正在填入…';
   try {

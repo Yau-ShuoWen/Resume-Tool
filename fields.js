@@ -3,6 +3,8 @@ export const fields = [
   { key: 'name', label: '姓名', terms: ['姓名', '真实姓名', '应聘者姓名', 'name', 'full name'] },
   { key: 'gender', label: '性别', terms: ['性别', 'gender', 'sex'] },
   { key: 'birthDate', label: '出生日期', terms: ['出生日期', '出生年月', '生日', 'date of birth', 'birthdate'] },
+  { key: 'birthPlace', label: '出生地', terms: ['出生地', '出生地点', 'place of birth'] },
+  { key: 'nationality', label: '国籍', terms: ['国籍', 'citizenship'] },
   { key: 'ethnicity', label: '民族', terms: ['民族', 'ethnicity', 'nationality'] },
   { key: 'politicalStatus', label: '政治面貌', terms: ['政治面貌', 'political status'] },
   { key: 'identityNumber', label: '身份证号码', terms: ['身份证号码', '身份证号', '证件号码', '证件号', 'id number', 'identity number'] },
@@ -23,6 +25,8 @@ export const fields = [
   { key: 'address', label: '详细地址', terms: ['详细地址', '居住地址', '联系地址', 'address'] },
   { key: 'school', label: '毕业院校', terms: ['毕业院校', '学校名称', '毕业学校', '就读学校', 'university', 'college', 'school'] },
   { key: 'degree', label: '学历', terms: ['最高学历', '学历', '学位', 'degree', 'education level'] },
+  { key: 'highestDegree', label: '最高学位', terms: ['最高学位'] },
+  { key: 'schoolType', label: '毕业院校类型', terms: ['毕业院校类型'] },
   { key: 'major', label: '专业', terms: ['所学专业', '专业名称', '专业', 'major', 'specialty'] },
   { key: 'graduationDate', label: '毕业时间', terms: ['毕业时间', '毕业日期', '毕业年份', 'graduation date', 'graduation year'] },
   { key: 'workYears', label: '工作年限', terms: ['工作年限', '工作经验年限', 'years of experience', 'work experience years'] },
@@ -35,16 +39,18 @@ export const fields = [
   { key: 'github', label: 'GitHub', terms: ['github', '代码仓库'] },
   { key: 'linkedin', label: 'LinkedIn', terms: ['linkedin', '领英'] },
   { key: 'summary', label: '个人简介', terms: ['个人简介', '自我介绍', '自我评价', '个人优势', 'summary', 'about me', 'profile'] },
+  { key: 'supplement', label: '补充说明', terms: ['补充说明'] },
+  { key: 'recruitmentSource', label: '招聘知悉途径', terms: ['招聘知悉途径', '招聘来源'] },
   { key: 'skills', label: '技能', terms: ['专业技能', '技能特长', '技能', 'skills'] },
   { key: 'resumeFile', label: '简历文件', terms: ['简历附件', '上传简历', '简历文件', 'resume', 'cv', 'upload resume'], file: true },
   { key: 'coverLetterFile', label: '求职信文件', terms: ['求职信附件', '上传求职信', 'cover letter'], file: true }
 ];
 
 export const groups = [
-  { title: '基本信息', keys: ['name', 'gender', 'birthDate', 'phone', 'email', 'ethnicity', 'politicalStatus', 'identityType', 'identityNumber', 'heightCm', 'weightKg'] },
+  { title: '基本信息', keys: ['name', 'gender', 'birthDate', 'birthPlace', 'nationality', 'phone', 'email', 'ethnicity', 'politicalStatus', 'identityType', 'identityNumber', 'heightCm', 'weightKg'] },
   { title: '地区信息', keys: ['city', 'hometown', 'hometownProvince', 'hometownCity', 'hometownDistrict', 'residence', 'residenceProvince', 'residenceCity', 'residenceDistrict', 'address'] },
-  { title: '教育与工作', keys: ['school', 'degree', 'major', 'graduationDate', 'workYears', 'company', 'position', 'targetPosition', 'salary', 'arrivalDate'] },
+  { title: '教育与工作', keys: ['school', 'degree', 'highestDegree', 'schoolType', 'major', 'graduationDate', 'workYears', 'company', 'position', 'targetPosition', 'salary', 'arrivalDate'] },
   { title: '链接', keys: ['website', 'github', 'linkedin'] },
-  { title: '其他内容', keys: ['summary', 'skills'] },
+  { title: '其他内容', keys: ['summary', 'supplement', 'recruitmentSource', 'skills'] },
   { title: '附件', keys: ['resumeFile', 'coverLetterFile'] }
 ];
