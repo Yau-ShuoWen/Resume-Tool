@@ -5,7 +5,8 @@ globalThis.resumeToolFill = async function (profile, fields, recordTypes) {
   const isVisible = el => !!el?.getClientRects().length && getComputedStyle(el).visibility !== 'hidden';
   const allControls = () => [...document.querySelectorAll('input,textarea,select,[contenteditable="true"],[role="combobox"],[aria-haspopup="listbox"],[class*="select-selector"],[class*="select__control"]')]
     .filter(el => !el.disabled && !['hidden', 'submit', 'reset', 'button', 'image', 'password'].includes(el.type))
-    .filter(el => !el.querySelector('input,textarea,select,[contenteditable="true"]'));
+    .filter(el => (isVisible(el) || el.type === 'file') && !el.closest('.ant-select-dropdown,.ant-calendar-picker-container'))
+    .filter(el => !el.matches('.ant-select-search__field') && (el.getAttribute('role') === 'combobox' || !el.querySelector('input,textarea,select,[contenteditable="true"]')));
   const labelCache = [...document.querySelectorAll('label')];
   const genericPlaceholder = /^(请输入|请选择|请填写|pleaseenter|pleaseselect|select|enter)$/i;
   const ownLabels = el => {
@@ -143,6 +144,15 @@ globalThis.resumeToolFill = async function (profile, fields, recordTypes) {
         option = await waitForOption(value);
       }
     }
+    if (!option && trigger.closest('.ant-select')) {
+      const search = trigger.querySelector('.ant-select-search__field');
+      if (search) {
+        const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set;
+        if (setter) setter.call(search, ''); else search.value = '';
+        search.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'deleteContentBackward' }));
+        option = await waitForOption(value);
+      }
+    }
     if (!option) return false;
     option.click();
     await new Promise(resolve => setTimeout(resolve, 120));
@@ -178,6 +188,18 @@ globalThis.resumeToolFill = async function (profile, fields, recordTypes) {
       el.files = transfer.files;
       notify(el);
       return 'filled';
+    }
+    if (el.matches('input.ant-calendar-picker-input')) {
+      el.closest('.ant-calendar-picker')?.click();
+      const input = [...document.querySelectorAll('.ant-calendar-picker-container .ant-calendar-input')].find(isVisible);
+      if (!input) return 'unsupported';
+      const date = String(value).slice(0, 10);
+      const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set;
+      if (setter) setter.call(input, date); else input.value = date;
+      input.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertText' }));
+      input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true }));
+      await new Promise(resolve => setTimeout(resolve, 120));
+      return norm(el.value).includes(norm(date)) ? 'filled' : 'unsupported';
     }
     if (el.type === 'month' && /^\d{4}-\d{2}-\d{2}$/.test(String(value))) value = String(value).slice(0, 7);
     if (el.type === 'date' && !/^\d{4}-\d{2}-\d{2}$/.test(String(value))) return 'unsupported';
